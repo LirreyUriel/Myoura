@@ -195,12 +195,12 @@ body{box-sizing:border-box;padding:8px}
 .tile-distance{background:rgba(40,210,160,.2)}
 .tile-heart{background:rgba(0,170,210,.2)}
 .icon{font-size:1.7rem;line-height:1;margin:0}
-.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin:8px 0 auto;color:#111}
-.label{margin:8px 0 0;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#111}
+.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:600;letter-spacing:-.04em;line-height:1;margin:8px 0 auto;color:#111}
+.label{margin:8px 0 0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#111}
 .status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:rgba(16,186,180,.2);border:1px solid rgba(190,255,240,.35)}
-.title{font-size:1.25rem;font-weight:800;margin:0 0 8px}
+.title{font-size:1.25rem;font-weight:600;margin:0 0 8px}
 .hint{color:#111;margin:0 0 16px;line-height:1.4}
-.btn{display:inline-flex;align-items:center;justify-content:center;background:rgba(16,210,168,.55);color:#111;text-decoration:none;font-weight:800;border-radius:999px;padding:11px 18px}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:rgba(16,210,168,.55);color:#111;text-decoration:none;font-weight:600;border-radius:999px;padding:11px 18px}
 </style>
 </head>
 <body style="background:transparent;background-color:transparent">

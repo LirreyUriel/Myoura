@@ -84,7 +84,8 @@ export default async function PrivacyPage() {
           data this app stores. Health metrics are not kept in an app database
         </li>
         <li>
-          Contact the developer at {site.contactEmail}
+          Contact the developer at{" "}
+          <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
         </li>
       </ul>
 

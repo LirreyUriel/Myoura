@@ -80,7 +80,9 @@ export default async function TermsPage() {
       </p>
 
       <h2>Contact</h2>
-      <p>{site.contactEmail}</p>
+      <p>
+        <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+      </p>
 
       <SiteNav locale={locale} />
     </main>

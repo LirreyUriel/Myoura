@@ -35,7 +35,12 @@ export default async function PrivacyPage() {
           widget can render in the correct locale and Oura day
         </li>
       </ul>
-      <p>We do not collect your email, name, or Oura personal-profile fields.</p>
+      <p>
+        We do not request the email scope. This app only retrieves daily
+        activity and heart rate. Other Oura API scopes may appear on the
+        consent screen so they match the permissions enabled for this
+        application; we do not fetch email, name, or personal-profile records.
+      </p>
 
       <h2>Purpose</h2>
       <p>

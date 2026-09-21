@@ -4,6 +4,7 @@ import {
   getOuraConfig,
   OURA_REVOKE_URL,
   OURA_TOKEN_URL,
+  OURA_TOKEN_URL_LEGACY,
 } from "@/lib/oura/config";
 import { errorFromOuraStatus, OAuthTokenError, OuraApiError } from "@/lib/oura/errors";
 import {
@@ -53,12 +54,22 @@ function sessionFromTokenResponse(
   };
 }
 
-async function postToken(body: URLSearchParams): Promise<TokenResponse> {
-  const { clientId, clientSecret } = getOuraConfig();
-  body.set("client_id", clientId);
-  body.set("client_secret", clientSecret);
+type TokenFailure = {
+  ok: false;
+  status: number;
+  oauthError: string;
+};
 
-  const response = await fetch(OURA_TOKEN_URL, {
+type TokenSuccess = {
+  ok: true;
+  data: TokenResponse;
+};
+
+async function postTokenTo(
+  url: string,
+  body: URLSearchParams,
+): Promise<TokenSuccess | TokenFailure> {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -68,22 +79,50 @@ async function postToken(body: URLSearchParams): Promise<TokenResponse> {
     cache: "no-store",
   });
 
-  if (!response.ok) {
-    let oauthError = "";
-    try {
-      const payload = (await response.json()) as { error?: string };
-      oauthError = payload.error ?? "";
-    } catch {
-      oauthError = "";
-    }
-    console.error("oura_token_failed", response.status, oauthError);
-    if (oauthError) {
-      throw new OAuthTokenError(oauthError, response.status);
-    }
-    throw errorFromOuraStatus(response.status === 400 ? 401 : response.status);
+  if (response.ok) {
+    return { ok: true, data: (await response.json()) as TokenResponse };
   }
 
-  return (await response.json()) as TokenResponse;
+  let oauthError = "";
+  try {
+    const payload = (await response.json()) as { error?: string };
+    oauthError = payload.error ?? "";
+  } catch {
+    oauthError = "";
+  }
+
+  console.error("oura_token_failed", new URL(url).host, response.status, oauthError);
+  return { ok: false, status: response.status, oauthError };
+}
+
+function throwTokenFailure(result: TokenFailure): never {
+  if (result.oauthError) {
+    throw new OAuthTokenError(result.oauthError, result.status);
+  }
+  throw errorFromOuraStatus(result.status === 400 ? 401 : result.status);
+}
+
+async function postToken(body: URLSearchParams): Promise<TokenResponse> {
+  const { clientId, clientSecret } = getOuraConfig();
+  body.set("client_id", clientId);
+  body.set("client_secret", clientSecret);
+
+  // authorization_code is single-use. Try moi first so a 401 from the
+  // legacy endpoint cannot burn the code before the live endpoint sees it.
+  const primary = await postTokenTo(OURA_TOKEN_URL, body);
+  if (primary.ok) {
+    return primary.data;
+  }
+
+  if (primary.status === 400 || primary.status === 401) {
+    const fallback = await postTokenTo(OURA_TOKEN_URL_LEGACY, body);
+    if (fallback.ok) {
+      return fallback.data;
+    }
+    throwTokenFailure(fallback);
+  }
+
+  throwTokenFailure(primary);
 }
 
 export async function exchangeAuthorizationCode(

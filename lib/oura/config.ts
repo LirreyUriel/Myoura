@@ -3,10 +3,24 @@ function readEnv(name: string): string {
 }
 
 export const OURA_AUTHORIZE_URL = "https://cloud.ouraring.com/oauth/authorize";
-export const OURA_TOKEN_URL = "https://api.ouraring.com/oauth/token";
+// moi is the live token endpoint for developer.ouraring.com apps. The
+// api.ouraring.com URL still works only for a shrinking set of legacy apps.
+export const OURA_TOKEN_URL = "https://moi.ouraring.com/oauth/v2/ext/oauth-token";
+export const OURA_TOKEN_URL_LEGACY = "https://api.ouraring.com/oauth/token";
 export const OURA_REVOKE_URL = "https://api.ouraring.com/oauth/revoke";
 export const OURA_API_BASE = "https://api.ouraring.com";
-export const OURA_SCOPES = "daily heartrate";
+export const OURA_SCOPES = [
+  "personal",
+  "daily",
+  "heartrate",
+  "workout",
+  "tag",
+  "session",
+  "spo2",
+  "ring_configuration",
+  "stress",
+  "heart_health",
+].join(" ");
 
 export type OuraConfig = {
   clientId: string;

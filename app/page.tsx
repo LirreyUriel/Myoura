@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; detail?: string }>;
 }) {
-  const [{ error }, locale, timeZone, result] = await Promise.all([
+  const [{ error, detail }, locale, timeZone, result] = await Promise.all([
     searchParams,
     getLocale(),
     getTimeZone(),
@@ -25,7 +25,7 @@ export default async function Home({
   return (
     <main id="content" className="app-shell">
       {result.state === "disconnected" ? (
-        <ConnectPanel locale={locale} error={queryError} />
+        <ConnectPanel locale={locale} error={queryError} detail={detail} />
       ) : null}
 
       {result.state === "error" ? (

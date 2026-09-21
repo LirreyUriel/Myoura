@@ -36,6 +36,7 @@ export function messageForError(
   code: UserErrorCode | string | undefined,
   t: {
     reconnectNeeded: string;
+    loginFailed: string;
     rateLimited: string;
     forbidden: string;
     unavailable: string;
@@ -46,6 +47,8 @@ export function messageForError(
   switch (code) {
     case "reconnect":
       return t.reconnectNeeded;
+    case "login":
+      return t.loginFailed;
     case "rate_limited":
       return t.rateLimited;
     case "forbidden":

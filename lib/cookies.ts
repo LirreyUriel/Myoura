@@ -1,6 +1,7 @@
 export const COOKIES = {
   session: "oura_session",
   oauthState: "oura_oauth_state",
+  oauthPkce: "oura_oauth_pkce",
   locale: "oura_locale",
   tz: "oura_tz",
 } as const;

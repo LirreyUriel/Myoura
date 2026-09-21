@@ -5,7 +5,7 @@ import {
   OURA_REVOKE_URL,
   OURA_TOKEN_URL,
 } from "@/lib/oura/config";
-import { errorFromOuraStatus, OuraApiError } from "@/lib/oura/errors";
+import { errorFromOuraStatus, OAuthTokenError, OuraApiError } from "@/lib/oura/errors";
 import {
   isExpired,
   needsRefresh,
@@ -77,6 +77,9 @@ async function postToken(body: URLSearchParams): Promise<TokenResponse> {
       oauthError = "";
     }
     console.error("oura_token_failed", response.status, oauthError);
+    if (oauthError) {
+      throw new OAuthTokenError(oauthError, response.status);
+    }
     throw errorFromOuraStatus(response.status === 400 ? 401 : response.status);
   }
 
@@ -86,14 +89,17 @@ async function postToken(body: URLSearchParams): Promise<TokenResponse> {
 export async function exchangeAuthorizationCode(
   code: string,
   redirectUri: string,
+  codeVerifier?: string,
 ): Promise<OuraSession> {
-  const data = await postToken(
-    new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-    }),
-  );
+  const params: Record<string, string> = {
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: redirectUri,
+  };
+  if (codeVerifier) {
+    params.code_verifier = codeVerifier;
+  }
+  const data = await postToken(new URLSearchParams(params));
   return sessionFromTokenResponse(data);
 }
 

@@ -5,6 +5,7 @@ import { COOKIES, oauthStateCookieOptions, sessionCookieOptions } from "@/lib/co
 import { unseal } from "@/lib/crypto";
 import { exchangeAuthorizationCode } from "@/lib/oura/auth";
 import { ConfigError, oauthRedirectUri } from "@/lib/oura/config";
+import { asSafeOAuthError, OAuthTokenError } from "@/lib/oura/errors";
 import { serializeSessionCookie } from "@/lib/session";
 import { isExpired, type OuraSession } from "@/lib/session-core";
 
@@ -17,6 +18,16 @@ function safeEqual(left: string, right: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+function loginRedirect(origin: string, detail?: string): URL {
+  const url = new URL("/", origin);
+  url.searchParams.set("error", "login");
+  const safe = asSafeOAuthError(detail);
+  if (safe) {
+    url.searchParams.set("detail", safe);
+  }
+  return url;
+}
+
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
@@ -26,12 +37,17 @@ export async function GET(request: NextRequest) {
   const code = params.get("code");
   const state = params.get("state");
   const expectedState = request.cookies.get(COOKIES.oauthState)?.value;
+  const codeVerifier = request.cookies.get(COOKIES.oauthPkce)?.value;
   const existingSession = await unseal<OuraSession>(
     request.cookies.get(COOKIES.session)?.value ?? "",
   );
 
   const finish = (response: NextResponse) => {
     response.cookies.set(COOKIES.oauthState, "", {
+      ...oauthStateCookieOptions(),
+      maxAge: 0,
+    });
+    response.cookies.set(COOKIES.oauthPkce, "", {
       ...oauthStateCookieOptions(),
       maxAge: 0,
     });
@@ -59,25 +75,24 @@ export async function GET(request: NextRequest) {
     const session = await exchangeAuthorizationCode(
       code,
       oauthRedirectUri(request),
+      codeVerifier,
     );
+    const sealed = await serializeSessionCookie(session);
     const response = NextResponse.redirect(new URL("/", origin));
-    response.cookies.set(
-      COOKIES.session,
-      await serializeSessionCookie(session),
-      sessionCookieOptions(),
-    );
+    response.cookies.set(COOKIES.session, sealed, sessionCookieOptions());
     return finish(response);
   } catch (caught) {
     if (existingSession && !isExpired(existingSession)) {
       return finish(NextResponse.redirect(new URL("/", origin)));
     }
-    console.error(
-      "oura_callback_failed",
-      caught instanceof ConfigError ? "config" : "token",
-    );
-    const codeParam = caught instanceof ConfigError ? "unavailable" : "reconnect";
-    return finish(
-      NextResponse.redirect(new URL(`/?error=${codeParam}`, origin)),
-    );
+    if (caught instanceof ConfigError) {
+      return finish(
+        NextResponse.redirect(new URL("/?error=unavailable", origin)),
+      );
+    }
+    const detail =
+      caught instanceof OAuthTokenError ? caught.oauthError : undefined;
+    console.error("oura_callback_failed", detail ?? "token");
+    return finish(NextResponse.redirect(loginRedirect(origin, detail)));
   }
 }

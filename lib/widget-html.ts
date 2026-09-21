@@ -194,8 +194,9 @@ body{box-sizing:border-box;padding:8px}
 .tile-active{background:rgba(0,200,210,.2)}
 .tile-distance{background:rgba(40,210,160,.2)}
 .tile-heart{background:rgba(0,170,210,.2)}
-.icon{font-size:1.7rem;line-height:1;margin:0}
-.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:600;letter-spacing:-.04em;line-height:1;margin:8px 0 auto;color:#111}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:auto}
+.icon{font-size:1.7rem;line-height:1;margin:0;flex:0 0 auto}
+.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:600;letter-spacing:-.04em;line-height:1;margin:0;color:#111}
 .label{margin:8px 0 0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#111}
 .status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:rgba(16,186,180,.2);border:1px solid rgba(190,255,240,.35)}
 .title{font-size:1.25rem;font-weight:600;margin:0 0 8px}
@@ -224,8 +225,10 @@ function metricsMarkup(
 ${tiles
   .map(
     ([tone, icon, label, value]) => `<section class="tile ${tone}">
-<p class="icon" aria-hidden="true">${icon}</p>
+<div class="row">
 <p class="value">${escapeHtml(value)}</p>
+<p class="icon" aria-hidden="true">${icon}</p>
+</div>
 <p class="label">${escapeHtml(label)}</p>
 </section>`,
   )

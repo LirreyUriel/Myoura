@@ -189,15 +189,15 @@ html,body,#content,.grid{margin:0;height:100%;background:transparent!important;b
 html,body{color:#111;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 body{box-sizing:border-box;padding:8px}
 .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}
-.tile{display:flex;flex-direction:column;justify-content:space-between;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.35)}
+.tile{display:flex;flex-direction:column;justify-content:flex-start;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.35)}
 .tile-burn{background:rgba(0,220,180,.2)}
 .tile-active{background:rgba(0,200,210,.2)}
 .tile-distance{background:rgba(40,210,160,.2)}
 .tile-heart{background:rgba(0,170,210,.2)}
-.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:auto}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .icon{font-size:1.7rem;line-height:1;margin:0;flex:0 0 auto}
 .value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:600;letter-spacing:-.04em;line-height:1;margin:0;color:#111}
-.label{margin:8px 0 0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#111}
+.label{margin:4px 0 0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#111}
 .status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:rgba(16,186,180,.2);border:1px solid rgba(190,255,240,.35)}
 .title{font-size:1.25rem;font-weight:600;margin:0 0 8px}
 .hint{color:#111;margin:0 0 16px;line-height:1.4}

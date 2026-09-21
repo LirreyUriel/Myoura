@@ -41,7 +41,16 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
           {
             key: "Content-Security-Policy",
-            value: contentSecurityPolicy("*"),
+            value: [
+              "default-src 'none'",
+              "style-src 'unsafe-inline'",
+              "img-src 'self' data:",
+              "script-src 'none'",
+              "connect-src 'none'",
+              "frame-ancestors *",
+              "base-uri 'none'",
+              "form-action 'self'",
+            ].join("; "),
           },
         ],
       },

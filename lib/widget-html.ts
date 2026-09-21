@@ -186,7 +186,7 @@ export function widgetHtml(model: WidgetModel): string {
 <title>${escapeHtml(t.appName)}</title>
 <style>
 html,body,#content,.grid{margin:0;height:100%;background:transparent!important;background-color:rgba(0,0,0,0)!important;background-image:none!important}
-html,body{color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+html,body{color:#111;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 body{box-sizing:border-box;padding:8px}
 .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}
 .tile{display:flex;flex-direction:column;justify-content:space-between;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.35)}
@@ -195,12 +195,12 @@ body{box-sizing:border-box;padding:8px}
 .tile-distance{background:rgba(40,210,160,.2)}
 .tile-heart{background:rgba(0,170,210,.2)}
 .icon{font-size:1.7rem;line-height:1;margin:0}
-.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin:8px 0 auto;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}
-.label{margin:8px 0 0;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin:8px 0 auto;color:#111}
+.label{margin:8px 0 0;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#111}
 .status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:rgba(16,186,180,.2);border:1px solid rgba(190,255,240,.35)}
 .title{font-size:1.25rem;font-weight:800;margin:0 0 8px}
-.hint{color:#f2fffb;margin:0 0 16px;line-height:1.4}
-.btn{display:inline-flex;align-items:center;justify-content:center;background:rgba(16,210,168,.55);color:#fff;text-decoration:none;font-weight:800;border-radius:999px;padding:11px 18px}
+.hint{color:#111;margin:0 0 16px;line-height:1.4}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:rgba(16,210,168,.55);color:#111;text-decoration:none;font-weight:800;border-radius:999px;padding:11px 18px}
 </style>
 </head>
 <body style="background:transparent;background-color:transparent">

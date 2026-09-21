@@ -1,8 +1,13 @@
 import "server-only";
 
-import { getOuraConfig, OURA_REVOKE_URL, OURA_TOKEN_URL } from "@/lib/oura/config";
+import {
+  getOuraConfig,
+  OURA_REVOKE_URL,
+  OURA_TOKEN_URL,
+} from "@/lib/oura/config";
 import { errorFromOuraStatus, OuraApiError } from "@/lib/oura/errors";
 import {
+  isExpired,
   needsRefresh,
   readSession,
   writeSession,
@@ -13,7 +18,7 @@ type TokenResponse = {
   token_type?: string;
   access_token?: string;
   refresh_token?: string;
-  expires_in?: number;
+  expires_in?: number | string;
   scope?: string;
 };
 
@@ -21,55 +26,79 @@ function sessionFromTokenResponse(
   data: TokenResponse,
   previous?: OuraSession,
 ): OuraSession {
-  if (!data.access_token || !data.refresh_token || !data.expires_in) {
+  const accessToken = data.access_token;
+  const refreshToken = data.refresh_token ?? previous?.refreshToken;
+  const expiresIn = Number(data.expires_in);
+
+  if (!accessToken || !refreshToken) {
     throw new OuraApiError("unavailable", 500);
   }
 
+  const lifetimeMs =
+    Number.isFinite(expiresIn) && expiresIn > 0
+      ? expiresIn * 1000
+      : 30 * 24 * 60 * 60 * 1000;
+
   return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresAt: Date.now() + data.expires_in * 1000,
+    accessToken,
+    refreshToken,
+    expiresAt: Date.now() + lifetimeMs,
     scope: data.scope ?? previous?.scope ?? "",
   };
 }
 
+function basicAuthHeader(clientId: string, clientSecret: string): string {
+  const raw = `${clientId}:${clientSecret}`;
+  return `Basic ${Buffer.from(raw, "utf8").toString("base64")}`;
+}
+
 async function postToken(body: URLSearchParams): Promise<TokenResponse> {
+  const { clientId, clientSecret } = getOuraConfig();
   const response = await fetch(OURA_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      Accept: "application/json",
+      Authorization: basicAuthHeader(clientId, clientSecret),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
     body,
     cache: "no-store",
   });
 
   if (!response.ok) {
+    let oauthError = "";
+    try {
+      const payload = (await response.json()) as { error?: string };
+      oauthError = payload.error ?? "";
+    } catch {
+      oauthError = "";
+    }
+    console.error("oura_token_failed", response.status, oauthError);
     throw errorFromOuraStatus(response.status === 400 ? 401 : response.status);
   }
 
   return (await response.json()) as TokenResponse;
 }
 
-export async function exchangeAuthorizationCode(code: string): Promise<OuraSession> {
-  const { clientId, clientSecret, redirectUri } = getOuraConfig();
+export async function exchangeAuthorizationCode(
+  code: string,
+  redirectUri: string,
+): Promise<OuraSession> {
   const data = await postToken(
     new URLSearchParams({
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
-      client_id: clientId,
-      client_secret: clientSecret,
     }),
   );
   return sessionFromTokenResponse(data);
 }
 
 export async function refreshSession(session: OuraSession): Promise<OuraSession> {
-  const { clientId, clientSecret } = getOuraConfig();
   const data = await postToken(
     new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: session.refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
     }),
   );
   return sessionFromTokenResponse(data, session);
@@ -94,7 +123,14 @@ export async function getFreshSession(): Promise<OuraSession | null> {
     return session;
   }
 
-  const refreshed = await refreshSession(session);
-  await writeSession(refreshed);
-  return refreshed;
+  try {
+    const refreshed = await refreshSession(session);
+    await writeSession(refreshed);
+    return refreshed;
+  } catch {
+    if (!isExpired(session)) {
+      return session;
+    }
+    throw new OuraApiError("reconnect", 401);
+  }
 }

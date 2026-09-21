@@ -15,10 +15,11 @@ export function isSecureCookie(): boolean {
 }
 
 export function sessionCookieOptions() {
+  const secure = isSecureCookie();
   return {
     httpOnly: true,
-    secure: isSecureCookie(),
-    sameSite: "lax" as const,
+    secure,
+    sameSite: (secure ? "none" : "lax") as "none" | "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,
   };

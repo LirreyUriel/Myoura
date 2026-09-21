@@ -5,7 +5,7 @@ export type OuraSession = {
   scope: string;
 };
 
-const REFRESH_SKEW_MS = 60 * 60 * 24 * 1000;
+const REFRESH_SKEW_MS = 5 * 60 * 1000;
 
 export function needsRefresh(session: OuraSession): boolean {
   return session.expiresAt - Date.now() < REFRESH_SKEW_MS;

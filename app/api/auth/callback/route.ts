@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { COOKIES, oauthStateCookieOptions, sessionCookieOptions } from "@/lib/cookies";
-import { ConfigError } from "@/lib/oura/config";
+import { callbackUrlFromRequest, ConfigError } from "@/lib/oura/config";
 import { exchangeAuthorizationCode } from "@/lib/oura/auth";
 import { serializeSessionCookie } from "@/lib/session";
 
@@ -16,14 +16,10 @@ function safeEqual(left: string, right: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
-
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const origin = appUrl();
+  const origin = request.nextUrl.origin;
   const params = request.nextUrl.searchParams;
   const error = params.get("error");
   const code = params.get("code");
@@ -51,7 +47,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const session = await exchangeAuthorizationCode(code);
+    const session = await exchangeAuthorizationCode(
+      code,
+      callbackUrlFromRequest(origin),
+    );
     const response = NextResponse.redirect(new URL("/", origin));
     response.cookies.set(
       COOKIES.session,
@@ -60,6 +59,10 @@ export async function GET(request: NextRequest) {
     );
     return clearState(response);
   } catch (caught) {
+    console.error(
+      "oura_callback_failed",
+      caught instanceof ConfigError ? "config" : "token",
+    );
     const codeParam = caught instanceof ConfigError ? "unavailable" : "reconnect";
     return clearState(
       NextResponse.redirect(new URL(`/?error=${codeParam}`, origin)),

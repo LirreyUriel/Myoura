@@ -1,7 +1,7 @@
 import { CompactEncrypt, compactDecrypt } from "jose";
 
 async function encryptionKey(): Promise<Uint8Array> {
-  const secret = process.env.SESSION_SECRET;
+  const secret = process.env.SESSION_SECRET?.trim();
   if (!secret) {
     throw new Error("Server is missing required configuration");
   }

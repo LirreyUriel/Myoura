@@ -4,10 +4,6 @@ import { COOKIES, localeCookieOptions } from "@/lib/cookies";
 import { isLocale } from "@/lib/i18n";
 import { isSafeRelativePath } from "@/lib/oura/errors";
 
-function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
-
 export async function POST(request: NextRequest) {
   const form = await request.formData();
   const locale = String(form.get("locale") ?? "");
@@ -15,10 +11,13 @@ export async function POST(request: NextRequest) {
   const next = isSafeRelativePath(nextRaw) ? nextRaw : "/settings";
 
   if (!isLocale(locale)) {
-    return NextResponse.redirect(new URL(next, appUrl()), 303);
+    return NextResponse.redirect(new URL(next, request.nextUrl.origin), 303);
   }
 
-  const response = NextResponse.redirect(new URL(next, appUrl()), 303);
+  const response = NextResponse.redirect(
+    new URL(next, request.nextUrl.origin),
+    303,
+  );
   response.cookies.set(COOKIES.locale, locale, localeCookieOptions());
   return response;
 }

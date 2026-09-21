@@ -5,16 +5,12 @@ import { unseal } from "@/lib/crypto";
 import { refreshSession } from "@/lib/oura/auth";
 import { isSafeRelativePath } from "@/lib/oura/errors";
 import { serializeSessionCookie } from "@/lib/session";
-import { needsRefresh, type OuraSession } from "@/lib/session-core";
-
-function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
+import { isExpired, needsRefresh, type OuraSession } from "@/lib/session-core";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const origin = appUrl();
+  const origin = request.nextUrl.origin;
   const nextParam = request.nextUrl.searchParams.get("next") ?? "/";
   const next = isSafeRelativePath(nextParam) ? nextParam : "/";
 
@@ -44,6 +40,9 @@ export async function GET(request: NextRequest) {
     );
     return response;
   } catch {
+    if (!isExpired(session)) {
+      return NextResponse.redirect(new URL(next, origin));
+    }
     const response = NextResponse.redirect(new URL("/?error=reconnect", origin));
     response.cookies.set(COOKIES.session, "", { ...sessionCookieOptions(), maxAge: 0 });
     return response;

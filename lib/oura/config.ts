@@ -1,4 +1,6 @@
-import "server-only";
+function readEnv(name: string): string {
+  return process.env[name]?.trim() ?? "";
+}
 
 export const OURA_AUTHORIZE_URL = "https://cloud.ouraring.com/oauth/authorize";
 export const OURA_TOKEN_URL = "https://api.ouraring.com/oauth/token";
@@ -14,16 +16,20 @@ export type OuraConfig = {
 };
 
 export function getOuraConfig(): OuraConfig {
-  const clientId = process.env.OURA_CLIENT_ID;
-  const clientSecret = process.env.OURA_CLIENT_SECRET;
-  const redirectUri = process.env.OURA_REDIRECT_URI;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const clientId = readEnv("OURA_CLIENT_ID");
+  const clientSecret = readEnv("OURA_CLIENT_SECRET");
+  const redirectUri = readEnv("OURA_REDIRECT_URI");
+  const appUrl = readEnv("NEXT_PUBLIC_APP_URL") || readEnv("APP_URL");
 
-  if (!clientId || !clientSecret || !redirectUri || !appUrl) {
+  if (!clientId || !clientSecret) {
     throw new ConfigError();
   }
 
   return { clientId, clientSecret, redirectUri, appUrl };
+}
+
+export function callbackUrlFromRequest(origin: string): string {
+  return `${origin.replace(/\/$/, "")}/api/auth/callback`;
 }
 
 export class ConfigError extends Error {

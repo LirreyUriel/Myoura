@@ -2,10 +2,9 @@ import { readWidgetTicket } from "@/lib/session";
 import { COOKIES } from "@/lib/cookies";
 import { unseal } from "@/lib/crypto";
 import { messageForError, type MetricsResult } from "@/lib/data";
-import { formatClock, formatMetricValue } from "@/lib/format";
+import { formatMetricValue } from "@/lib/format";
 import {
   defaultLocale,
-  dirFor,
   isLocale,
   translations,
   type Locale,
@@ -156,16 +155,16 @@ export async function loadWidgetModel(
   return { locale, timeZone, result: { state: "disconnected" } };
 }
 
+const WIDGET_COPY = translations.en;
+
 export function widgetHtml(model: WidgetModel): string {
-  const { locale, timeZone, result } = model;
-  const t = translations[locale];
-  const dir = dirFor(locale);
+  const { result } = model;
+  const t = WIDGET_COPY;
   const body =
     result.state === "ready"
-      ? metricsMarkup(locale, timeZone, result.metrics)
+      ? metricsMarkup(result.metrics)
       : result.state === "error"
         ? statusMarkup(
-            locale,
             messageForError(result.code, t),
             result.code === "widget_expired"
               ? undefined
@@ -173,33 +172,34 @@ export function widgetHtml(model: WidgetModel): string {
                 ? { href: "/api/auth/oura?next=/widget", label: t.reconnect }
                 : { href: "/widget", label: t.tryAgain },
           )
-        : statusMarkup(locale, t.widgetConnectHint, {
+        : statusMarkup(t.widgetConnectHint, {
             href: "/api/auth/oura?next=/widget",
             label: t.connectOura,
           });
 
   return `<!DOCTYPE html>
-<html lang="${escapeHtml(locale)}" dir="${dir}">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="only light">
+<meta name="color-scheme" content="dark">
 <meta name="robots" content="noindex, nofollow">
 <title>${escapeHtml(t.appName)}</title>
 <style>
-html,body{margin:0;background:#f7f5f0;color:#181818;color-scheme:only light;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-body{padding:8px}
-.card{background:#f7f5f0;border:1px solid #e4e0d8;border-radius:18px;padding:14px 12px 12px}
-.kicker{color:#77736b;font-size:11px;font-weight:600;letter-spacing:.08em;margin:0 0 12px;text-transform:uppercase}
-.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:16px}
-.wide{grid-column:1/-1;text-align:center}
-.value{direction:ltr;unicode-bidi:isolate;font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:0}
-.wide .value{font-size:24px}
-.label{color:#77736b;font-size:10px;font-weight:500;letter-spacing:.08em;margin:4px 0 0;text-transform:uppercase}
-.updated{color:#77736b;font-size:12px;margin:16px 0 0;text-align:center}
-.title{font-size:20px;font-weight:650;letter-spacing:-.02em;margin:0 0 8px}
-.hint{color:#77736b;margin:0 0 16px;line-height:1.4}
-.btn{display:inline-flex;align-items:center;justify-content:center;background:#b86f52;color:#fff;text-decoration:none;font-weight:600;border-radius:999px;padding:11px 18px}
+html,body{margin:0;height:100%;background:#070b16;color:#fff;color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{box-sizing:border-box;padding:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;height:100%}
+.tile{display:flex;flex-direction:column;justify-content:space-between;border-radius:18px;padding:14px 12px 12px;min-height:0}
+.tile-burn{background:linear-gradient(160deg,#ff7a18,#ff2d2d)}
+.tile-active{background:linear-gradient(160deg,#ff3cab,#d61f8c)}
+.tile-distance{background:linear-gradient(160deg,#00e6c3,#0088ff)}
+.tile-heart{background:linear-gradient(160deg,#8b5cff,#3b4dff)}
+.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin:0;color:#fff}
+.label{margin:10px 0 0;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.95)}
+.status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:linear-gradient(160deg,#1b1f3b,#0d1024)}
+.title{font-size:1.25rem;font-weight:800;margin:0 0 8px}
+.hint{color:#d2d8ff;margin:0 0 16px;line-height:1.4}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#ff7a18,#ff3cab);color:#fff;text-decoration:none;font-weight:800;border-radius:999px;padding:11px 18px}
 </style>
 </head>
 <body>
@@ -209,42 +209,34 @@ ${body}
 }
 
 function metricsMarkup(
-  locale: Locale,
-  timeZone: string,
   metrics: Extract<MetricsResult, { state: "ready" }>["metrics"],
 ): string {
-  const t = translations[locale];
-  const cells = [
-    [t.totalBurn, formatMetricValue(metrics.totalCalories, locale, "int"), false],
-    [t.activeBurn, formatMetricValue(metrics.activeCalories, locale, "int"), false],
-    [t.steps, formatMetricValue(metrics.steps, locale, "int"), false],
-    [t.distance, formatMetricValue(metrics.distanceKm, locale, "km"), false],
-    [t.heartRate, formatMetricValue(metrics.heartRate, locale, "hr"), true],
+  const t = WIDGET_COPY;
+  const tiles = [
+    ["tile-burn", t.totalBurn, formatMetricValue(metrics.totalCalories, "en", "int")],
+    ["tile-active", t.activeBurn, formatMetricValue(metrics.activeCalories, "en", "int")],
+    ["tile-distance", t.distance, formatMetricValue(metrics.distanceKm, "en", "km")],
+    ["tile-heart", t.heartRate, formatMetricValue(metrics.heartRate, "en", "hr")],
   ] as const;
 
-  return `<main class="card" id="content">
-<p class="kicker">${escapeHtml(t.today)}</p>
-<div class="grid">
-${cells
+  return `<main class="grid" id="content" aria-label="${escapeHtml(t.appName)}">
+${tiles
   .map(
-    ([label, value, wide]) => `<div class="${wide ? "wide" : ""}">
+    ([tone, label, value]) => `<section class="tile ${tone}">
 <p class="value">${escapeHtml(value)}</p>
 <p class="label">${escapeHtml(label)}</p>
-</div>`,
+</section>`,
   )
   .join("\n")}
-</div>
-<p class="updated">${escapeHtml(t.updated)} ${escapeHtml(formatClock(metrics.lastUpdated, locale, timeZone))}</p>
 </main>`;
 }
 
 function statusMarkup(
-  locale: Locale,
   message: string,
   action?: { href: string; label: string },
 ): string {
-  const t = translations[locale];
-  return `<main class="card" id="content">
+  const t = WIDGET_COPY;
+  return `<main class="status" id="content">
 <h1 class="title">${escapeHtml(t.appName)}</h1>
 <p class="hint">${escapeHtml(message)}</p>
 ${

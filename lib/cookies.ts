@@ -2,6 +2,7 @@ export const COOKIES = {
   session: "oura_session",
   oauthState: "oura_oauth_state",
   oauthPkce: "oura_oauth_pkce",
+  oauthNext: "oura_oauth_next",
   locale: "oura_locale",
   tz: "oura_tz",
 } as const;
@@ -16,10 +17,13 @@ export function isSecureCookie(): boolean {
 }
 
 export function sessionCookieOptions() {
+  const secure = isSecureCookie();
   return {
     httpOnly: true,
-    secure: isSecureCookie(),
-    sameSite: "lax" as const,
+    secure,
+    // Website-widget WebViews often load the page in a context that treats
+    // Lax cookies as third-party and drops them on the next refresh.
+    sameSite: secure ? ("none" as const) : ("lax" as const),
     path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,
   };

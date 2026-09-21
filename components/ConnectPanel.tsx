@@ -28,7 +28,10 @@ export function ConnectPanel({
       ) : null}
       {detail ? <p className="page-tagline">{detail}</p> : null}
       {hint ? <p className="page-tagline">{t.widgetConnectHint}</p> : null}
-      <a className="btn-primary" href="/api/auth/oura">
+      <a
+        className="btn-primary"
+        href={compact ? "/api/auth/oura?next=/widget" : "/api/auth/oura"}
+      >
         {t.connectOura}
       </a>
     </section>

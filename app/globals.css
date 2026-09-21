@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: only light;
   --background: #f7f5f0;
   --foreground: #181818;
   --muted: #77736b;
@@ -11,7 +12,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(:has(.app-shell-widget)) {
+    color-scheme: dark;
     --background: #161616;
     --foreground: #f7f5f0;
     --muted: #a8a49c;
@@ -72,11 +74,26 @@ body {
   padding: 1.5rem 1rem 2rem;
 }
 
+html:has(.app-shell-widget) {
+  color-scheme: only light;
+  background: #f7f5f0;
+}
+
+html:has(.app-shell-widget) body {
+  background: #f7f5f0;
+  color: #181818;
+}
+
+html:has(.app-shell-widget) .skip-link {
+  display: none;
+}
+
 .app-shell-widget {
   margin-inline: auto;
   max-width: 22rem;
-  min-height: 100dvh;
-  padding: 0.75rem;
+  min-height: 0;
+  padding: 0.5rem;
+  box-sizing: border-box;
 }
 
 .page-title {

@@ -40,7 +40,7 @@ export const translations = {
     terms: "Terms of Service",
     attribution: "Data provided by Oura",
     widgetConnectHint:
-      "Connect Oura in this window so the widget can keep your session.",
+      "Connect Oura in this window. A login in Chrome does not sign the widget in.",
     notTheOuraApp: "This is a personal dashboard, not the Oura app.",
     skipToContent: "Skip to content",
   },
@@ -79,7 +79,7 @@ export const translations = {
     terms: "תנאי שימוש",
     attribution: "נתונים מסופקים על ידי Oura",
     widgetConnectHint:
-      "חבר את Oura בחלון הזה כדי שהווידג׳ט יוכל לשמור את ההפעלה.",
+      "חברי את Oura בחלון הזה. חיבור בדפדפן חיצוני לא נשמר בווידג׳ט.",
     notTheOuraApp: "זה לוח בקרה אישי, לא אפליקציית Oura.",
     skipToContent: "דלג לתוכן",
   },

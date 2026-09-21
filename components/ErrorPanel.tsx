@@ -16,7 +16,10 @@ export function ErrorPanel({ locale, code, compact }: ErrorPanelProps) {
     <section className={compact ? "connect-panel compact" : "connect-panel"} role="alert">
       <p className="status-message">{messageForError(code, t)}</p>
       {reconnect ? (
-        <a className="btn-primary" href="/api/auth/oura">
+        <a
+          className="btn-primary"
+          href={compact ? "/api/auth/oura?next=/widget" : "/api/auth/oura"}
+        >
           {t.reconnect}
         </a>
       ) : (

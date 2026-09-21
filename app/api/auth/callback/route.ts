@@ -5,7 +5,7 @@ import { COOKIES, oauthStateCookieOptions, sessionCookieOptions } from "@/lib/co
 import { unseal } from "@/lib/crypto";
 import { exchangeAuthorizationCode } from "@/lib/oura/auth";
 import { ConfigError, oauthRedirectUri } from "@/lib/oura/config";
-import { asSafeOAuthError, OAuthTokenError } from "@/lib/oura/errors";
+import { asSafeOAuthError, isSafeAppReturnPath, OAuthTokenError } from "@/lib/oura/errors";
 import { serializeSessionCookie } from "@/lib/session";
 import { isExpired, type OuraSession } from "@/lib/session-core";
 
@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
   const state = params.get("state");
   const expectedState = request.cookies.get(COOKIES.oauthState)?.value;
   const codeVerifier = request.cookies.get(COOKIES.oauthPkce)?.value;
+  const nextRaw = request.cookies.get(COOKIES.oauthNext)?.value;
+  const next = isSafeAppReturnPath(nextRaw) ? nextRaw : "/";
   const existingSession = await unseal<OuraSession>(
     request.cookies.get(COOKIES.session)?.value ?? "",
   );
@@ -51,23 +53,29 @@ export async function GET(request: NextRequest) {
       ...oauthStateCookieOptions(),
       maxAge: 0,
     });
+    response.cookies.set(COOKIES.oauthNext, "", {
+      ...oauthStateCookieOptions(),
+      maxAge: 0,
+    });
     return response;
   };
 
   if (error) {
-    return finish(NextResponse.redirect(new URL("/?error=denied", origin)));
+    return finish(NextResponse.redirect(new URL(next === "/widget" ? "/widget" : "/?error=denied", origin)));
   }
 
   if (existingSession && !isExpired(existingSession) && !code) {
-    return finish(NextResponse.redirect(new URL("/", origin)));
+    return finish(NextResponse.redirect(new URL(next, origin)));
   }
 
   if (!code || !state || !expectedState || !safeEqual(state, expectedState)) {
     if (existingSession && !isExpired(existingSession)) {
-      return finish(NextResponse.redirect(new URL("/", origin)));
+      return finish(NextResponse.redirect(new URL(next, origin)));
     }
     return finish(
-      NextResponse.redirect(new URL("/?error=unavailable", origin)),
+      NextResponse.redirect(
+        new URL(next === "/widget" ? "/widget" : "/?error=unavailable", origin),
+      ),
     );
   }
 
@@ -78,21 +86,27 @@ export async function GET(request: NextRequest) {
       codeVerifier,
     );
     const sealed = await serializeSessionCookie(session);
-    const response = NextResponse.redirect(new URL("/", origin));
+    const response = NextResponse.redirect(new URL(next, origin));
     response.cookies.set(COOKIES.session, sealed, sessionCookieOptions());
     return finish(response);
   } catch (caught) {
     if (existingSession && !isExpired(existingSession)) {
-      return finish(NextResponse.redirect(new URL("/", origin)));
+      return finish(NextResponse.redirect(new URL(next, origin)));
     }
     if (caught instanceof ConfigError) {
       return finish(
-        NextResponse.redirect(new URL("/?error=unavailable", origin)),
+        NextResponse.redirect(
+          new URL(next === "/widget" ? "/widget" : "/?error=unavailable", origin),
+        ),
       );
     }
     const detail =
       caught instanceof OAuthTokenError ? caught.oauthError : undefined;
     console.error("oura_callback_failed", detail ?? "token");
-    return finish(NextResponse.redirect(loginRedirect(origin, detail)));
+    return finish(
+      NextResponse.redirect(
+        next === "/widget" ? new URL("/widget", origin) : loginRedirect(origin, detail),
+      ),
+    );
   }
 }

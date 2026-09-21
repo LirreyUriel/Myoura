@@ -60,3 +60,7 @@ export function errorFromOuraStatus(status: number): OuraApiError {
 export function isSafeRelativePath(path: string): boolean {
   return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\");
 }
+
+export function isSafeAppReturnPath(path: string | undefined | null): path is "/" | "/widget" {
+  return path === "/" || path === "/widget";
+}

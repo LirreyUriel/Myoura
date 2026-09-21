@@ -189,7 +189,7 @@ html,body,#content,.grid{margin:0;height:100%;background:transparent!important;b
 html,body{color:#111;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 body{box-sizing:border-box;padding:8px}
 .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}
-.tile{display:flex;flex-direction:column;justify-content:flex-start;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.35)}
+.tile{display:flex;flex-direction:column;justify-content:center;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.35)}
 .tile-burn{background:rgba(0,220,180,.2)}
 .tile-active{background:rgba(0,200,210,.2)}
 .tile-distance{background:rgba(40,210,160,.2)}

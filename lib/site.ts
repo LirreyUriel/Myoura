@@ -9,3 +9,7 @@ export const site = {
   ouraApplicationsUrl: "https://cloud.ouraring.com/oauth/applications",
   ouraRevokeUrl: "https://cloud.ouraring.com",
 } as const;
+
+export function appOrigin(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+}

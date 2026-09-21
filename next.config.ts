@@ -27,6 +27,24 @@ const commonHeaders = [
   },
 ];
 
+const widgetFrameHeaders = [
+  ...commonHeaders,
+  { key: "Cache-Control", value: "private, no-store" },
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'none'",
+      "style-src 'unsafe-inline'",
+      "img-src 'self' data:",
+      "script-src 'none'",
+      "connect-src 'none'",
+      "frame-ancestors *",
+      "base-uri 'none'",
+      "form-action 'self'",
+    ].join("; "),
+  },
+];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   turbopack: {
@@ -36,26 +54,14 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/widget",
-        headers: [
-          ...commonHeaders,
-          { key: "Cache-Control", value: "private, no-store" },
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'none'",
-              "style-src 'unsafe-inline'",
-              "img-src 'self' data:",
-              "script-src 'none'",
-              "connect-src 'none'",
-              "frame-ancestors *",
-              "base-uri 'none'",
-              "form-action 'self'",
-            ].join("; "),
-          },
-        ],
+        headers: widgetFrameHeaders,
       },
       {
-        source: "/((?!widget$).*)",
+        source: "/w/:ticket*",
+        headers: widgetFrameHeaders,
+      },
+      {
+        source: "/((?!widget$|w/).*)",
         headers: [
           ...commonHeaders,
           { key: "X-Frame-Options", value: "DENY" },

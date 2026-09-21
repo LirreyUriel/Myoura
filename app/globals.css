@@ -306,6 +306,18 @@ button:focus-visible {
   color: var(--muted);
 }
 
+.widget-link-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.65rem 0.75rem;
+}
+
 .settings-card {
   display: flex;
   flex-direction: column;

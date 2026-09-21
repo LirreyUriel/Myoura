@@ -56,8 +56,11 @@ export default async function PrivacyPage() {
       </p>
       <p>
         Authorization tokens are stored in an encrypted, HttpOnly session cookie
-        on your device so the widget can stay signed in. We do not use this data
-        for analytics, advertising, profiling, or model training.
+        on your device so the dashboard can stay signed in. A personal widget
+        link can be copied after login so a home-screen widget can load metrics
+        without that cookie. The link is a secret; it does not contain health
+        values. Do not share it. We do not use this data for analytics,
+        advertising, profiling, or model training.
       </p>
       <p>
         Tokens are kept only while your connection is active, and for no longer

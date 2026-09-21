@@ -5,7 +5,8 @@ export type UserErrorCode =
   | "forbidden"
   | "unavailable"
   | "denied"
-  | "unknown";
+  | "unknown"
+  | "widget_expired";
 
 export const SAFE_OAUTH_ERRORS = [
   "invalid_request",

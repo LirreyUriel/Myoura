@@ -1,3 +1,4 @@
+import { readWidgetTicket } from "@/lib/session";
 import { COOKIES } from "@/lib/cookies";
 import { unseal } from "@/lib/crypto";
 import { messageForError, type MetricsResult } from "@/lib/data";
@@ -61,43 +62,15 @@ type WidgetModel = {
   sessionToWrite?: OuraSession;
 };
 
-export async function loadWidgetModel(request: NextRequest): Promise<WidgetModel> {
-  const locale = localeFromRequest(request);
-  const timeZone = timeZoneFromRequest(request);
-  const raw = request.cookies.get(COOKIES.session)?.value;
-  if (!raw) {
-    return { locale, timeZone, result: { state: "disconnected" } };
-  }
-
-  let session = await unseal<OuraSession>(raw);
-  if (!session?.accessToken || !session.refreshToken) {
-    return { locale, timeZone, result: { state: "disconnected" } };
-  }
-
-  let sessionToWrite: OuraSession | undefined;
-  if (needsRefresh(session)) {
-    try {
-      session = await refreshSession(session);
-      sessionToWrite = session;
-    } catch {
-      if (isExpired(session)) {
-        return {
-          locale,
-          timeZone,
-          result: { state: "error", code: "reconnect" },
-        };
-      }
-    }
-  }
-
-  if (isExpired(session)) {
-    return { locale, timeZone, result: { state: "error", code: "reconnect" } };
-  }
-
+async function metricsForToken(
+  accessToken: string,
+  timeZone: string,
+  expiredCode: "reconnect" | "widget_expired",
+  sessionToWrite?: OuraSession,
+): Promise<Pick<WidgetModel, "timeZone" | "result" | "sessionToWrite">> {
   try {
-    const metrics = await getTodayMetrics(session.accessToken, timeZone);
+    const metrics = await getTodayMetrics(accessToken, timeZone);
     return {
-      locale,
       timeZone,
       result: { state: "ready", metrics },
       sessionToWrite,
@@ -105,19 +78,82 @@ export async function loadWidgetModel(request: NextRequest): Promise<WidgetModel
   } catch (error) {
     if (error instanceof OuraApiError) {
       return {
-        locale,
         timeZone,
-        result: { state: "error", code: error.code },
+        result: {
+          state: "error",
+          code: error.code === "reconnect" ? expiredCode : error.code,
+        },
         sessionToWrite,
       };
     }
     return {
-      locale,
       timeZone,
       result: { state: "error", code: "unknown" },
       sessionToWrite,
     };
   }
+}
+
+export async function loadWidgetModel(
+  request: NextRequest,
+  ticket?: string,
+): Promise<WidgetModel> {
+  const locale = localeFromRequest(request);
+  const timeZone = timeZoneFromRequest(request);
+  const raw = request.cookies.get(COOKIES.session)?.value;
+  if (raw) {
+    let session = await unseal<OuraSession>(raw);
+    if (session?.accessToken && session.refreshToken) {
+      let sessionToWrite: OuraSession | undefined;
+      if (needsRefresh(session)) {
+        try {
+          session = await refreshSession(session);
+          sessionToWrite = session;
+        } catch {
+          if (!isExpired(session) && session) {
+            const loaded = await metricsForToken(
+              session.accessToken,
+              timeZone,
+              "reconnect",
+            );
+            return { locale, ...loaded };
+          }
+        }
+      }
+
+      if (session && !isExpired(session)) {
+        const loaded = await metricsForToken(
+          session.accessToken,
+          timeZone,
+          "reconnect",
+          sessionToWrite,
+        );
+        return { locale, ...loaded };
+      }
+    }
+  }
+
+  if (ticket) {
+    const payload = await readWidgetTicket(ticket);
+    if (!payload) {
+      return { locale, timeZone, result: { state: "disconnected" } };
+    }
+    if (payload.expiresAt <= Date.now()) {
+      return {
+        locale,
+        timeZone,
+        result: { state: "error", code: "widget_expired" },
+      };
+    }
+    const loaded = await metricsForToken(
+      payload.accessToken,
+      timeZone,
+      "widget_expired",
+    );
+    return { locale, ...loaded };
+  }
+
+  return { locale, timeZone, result: { state: "disconnected" } };
 }
 
 export function widgetHtml(model: WidgetModel): string {
@@ -131,9 +167,11 @@ export function widgetHtml(model: WidgetModel): string {
         ? statusMarkup(
             locale,
             messageForError(result.code, t),
-            result.code === "reconnect"
-              ? { href: "/api/auth/oura?next=/widget", label: t.reconnect }
-              : { href: "/widget", label: t.tryAgain },
+            result.code === "widget_expired"
+              ? undefined
+              : result.code === "reconnect"
+                ? { href: "/api/auth/oura?next=/widget", label: t.reconnect }
+                : { href: "/widget", label: t.tryAgain },
           )
         : statusMarkup(locale, t.widgetConnectHint, {
             href: "/api/auth/oura?next=/widget",
@@ -203,12 +241,16 @@ ${cells
 function statusMarkup(
   locale: Locale,
   message: string,
-  action: { href: string; label: string },
+  action?: { href: string; label: string },
 ): string {
   const t = translations[locale];
   return `<main class="card" id="content">
 <h1 class="title">${escapeHtml(t.appName)}</h1>
 <p class="hint">${escapeHtml(message)}</p>
-<a class="btn" href="${escapeHtml(action.href)}">${escapeHtml(action.label)}</a>
+${
+  action
+    ? `<a class="btn" href="${escapeHtml(action.href)}">${escapeHtml(action.label)}</a>`
+    : ""
+}
 </main>`;
 }

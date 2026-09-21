@@ -41,6 +41,13 @@ export const translations = {
     attribution: "Data provided by Oura",
     widgetConnectHint:
       "Connect Oura in this window. A login in Chrome does not sign the widget in.",
+    widgetLink: "Home-screen widget link",
+    widgetLinkHint:
+      "Paste this exact link into Website Widget. The ordinary /widget address cannot see your Chrome login.",
+    copyWidgetLink: "Copy widget link",
+    copied: "Copied",
+    widgetExpired:
+      "This widget link expired. Open Settings and copy a new one.",
     notTheOuraApp: "This is a personal dashboard, not the Oura app.",
     skipToContent: "Skip to content",
   },
@@ -80,6 +87,12 @@ export const translations = {
     attribution: "נתונים מסופקים על ידי Oura",
     widgetConnectHint:
       "חברי את Oura בחלון הזה. חיבור בדפדפן חיצוני לא נשמר בווידג׳ט.",
+    widgetLink: "קישור לווידג׳ט במסך הבית",
+    widgetLinkHint:
+      "הדביקי את הקישור הזה באפליקציית הווידג׳ט. הכתובת הרגילה /widget לא רואה את החיבור מ-Chrome.",
+    copyWidgetLink: "העתקת קישור",
+    copied: "הועתק",
+    widgetExpired: "פג תוקף הקישור. פתחי הגדרות והעתיקי קישור חדש.",
     notTheOuraApp: "זה לוח בקרה אישי, לא אפליקציית Oura.",
     skipToContent: "דלג לתוכן",
   },

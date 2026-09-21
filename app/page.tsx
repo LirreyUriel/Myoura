@@ -1,3 +1,4 @@
+import { CopyWidgetLink } from "@/components/CopyWidgetLink";
 import { ConnectPanel } from "@/components/ConnectPanel";
 import { DashboardFooter } from "@/components/DashboardFooter";
 import { ErrorPanel } from "@/components/ErrorPanel";
@@ -5,6 +6,7 @@ import { MetricsGrid } from "@/components/MetricsGrid";
 import { loadMetrics, messageForError } from "@/lib/data";
 import { translations } from "@/lib/i18n";
 import { getLocale, getTimeZone } from "@/lib/locale";
+import { readSession, widgetShareUrl } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +15,17 @@ export default async function Home({
 }: {
   searchParams: Promise<{ error?: string; detail?: string }>;
 }) {
-  const [{ error, detail }, locale, timeZone, result] = await Promise.all([
+  const [{ error, detail }, locale, timeZone, result, session] = await Promise.all([
     searchParams,
     getLocale(),
     getTimeZone(),
     loadMetrics(),
+    readSession(),
   ]);
   const t = translations[locale];
   const queryError = error ? messageForError(error, t) : undefined;
+  const widgetUrl =
+    result.state === "ready" && session ? await widgetShareUrl(session) : null;
 
   return (
     <main id="content" className="app-shell">
@@ -46,6 +51,7 @@ export default async function Home({
             lastUpdated={result.metrics.lastUpdated}
             timeZone={timeZone}
           />
+          {widgetUrl ? <CopyWidgetLink locale={locale} url={widgetUrl} /> : null}
         </>
       ) : null}
     </main>

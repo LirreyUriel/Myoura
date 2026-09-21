@@ -1,7 +1,8 @@
+import { CopyWidgetLink } from "@/components/CopyWidgetLink";
 import { SiteNav } from "@/components/SiteNav";
 import { translations } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
-import { readSession } from "@/lib/session";
+import { readSession, widgetShareUrl } from "@/lib/session";
 import { site } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export default async function SettingsPage() {
   const [locale, session] = await Promise.all([getLocale(), readSession()]);
   const t = translations[locale];
   const connected = Boolean(session);
+  const widgetUrl = session ? await widgetShareUrl(session) : null;
 
   return (
     <main id="content" className="app-shell">
@@ -50,6 +52,8 @@ export default async function SettingsPage() {
           </a>
         )}
       </section>
+
+      {widgetUrl ? <CopyWidgetLink locale={locale} url={widgetUrl} /> : null}
 
       <p className="attribution">{site.attribution}</p>
       <SiteNav locale={locale} current="settings" />

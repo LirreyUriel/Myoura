@@ -42,6 +42,7 @@ export function messageForError(
     unavailable: string;
     denied: string;
     errorUpdate: string;
+    widgetExpired: string;
   },
 ): string {
   switch (code) {
@@ -57,6 +58,8 @@ export function messageForError(
       return t.denied;
     case "unavailable":
       return t.unavailable;
+    case "widget_expired":
+      return t.widgetExpired;
     default:
       return t.errorUpdate;
   }

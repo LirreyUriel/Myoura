@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { COOKIES, sessionCookieOptions } from "@/lib/cookies";
 import { seal, unseal } from "@/lib/crypto";
 import type { OuraSession } from "@/lib/session-core";
+import { appOrigin } from "@/lib/site";
 
 export type { OuraSession } from "@/lib/session-core";
 export { isExpired, needsRefresh } from "@/lib/session-core";
@@ -40,4 +41,39 @@ export async function serializeSessionCookie(
   session: OuraSession,
 ): Promise<string> {
   return seal(session);
+}
+
+export type WidgetTicket = {
+  accessToken: string;
+  expiresAt: number;
+};
+
+export async function serializeWidgetTicket(
+  session: OuraSession,
+): Promise<string> {
+  const ticket: WidgetTicket = {
+    accessToken: session.accessToken,
+    expiresAt: session.expiresAt,
+  };
+  return seal(ticket);
+}
+
+export async function readWidgetTicket(
+  ticket: string,
+): Promise<WidgetTicket | null> {
+  const payload = await unseal<WidgetTicket>(ticket);
+  if (!payload?.accessToken || typeof payload.expiresAt !== "number") {
+    return null;
+  }
+  return payload;
+}
+
+export async function widgetShareUrl(
+  session: OuraSession,
+): Promise<string | null> {
+  const origin = appOrigin();
+  if (!origin) {
+    return null;
+  }
+  return `${origin}/w/${await serializeWidgetTicket(session)}`;
 }

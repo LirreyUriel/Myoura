@@ -11,8 +11,9 @@ import {
 } from "@/lib/i18n";
 import { isValidTimeZone } from "@/lib/locale";
 import { refreshSession } from "@/lib/oura/auth";
-import { getTodayMetrics } from "@/lib/oura/client";
+import { getWidgetMetrics } from "@/lib/oura/client";
 import { OuraApiError } from "@/lib/oura/errors";
+import { emptyHeartRateWeek } from "@/lib/oura/metrics";
 import { isExpired, needsRefresh, type OuraSession } from "@/lib/session-core";
 
 import type { NextRequest } from "next/server";
@@ -68,7 +69,7 @@ async function metricsForToken(
   sessionToWrite?: OuraSession,
 ): Promise<Pick<WidgetModel, "timeZone" | "result" | "sessionToWrite">> {
   try {
-    const metrics = await getTodayMetrics(accessToken, timeZone);
+    const metrics = await getWidgetMetrics(accessToken, timeZone);
     return {
       timeZone,
       result: { state: "ready", metrics },
@@ -188,16 +189,19 @@ export function widgetHtml(model: WidgetModel): string {
 html,body,#content,.grid{margin:0;height:100%;background:transparent!important;background-color:rgba(0,0,0,0)!important;background-image:none!important}
 html,body{color:#111;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 body{box-sizing:border-box;padding:8px}
-.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1.2fr;gap:10px}
 .tile{display:flex;flex-direction:column;justify-content:center;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.35)}
 .tile-burn{background:rgba(0,220,180,.2)}
-.tile-active{background:rgba(0,200,210,.2)}
 .tile-distance{background:rgba(40,210,160,.2)}
-.tile-heart{background:rgba(0,170,210,.2)}
+.tile-heart{grid-column:1/-1;background:rgba(0,170,210,.2)}
+.tile-burn .value{font-size:clamp(1.15rem,5.4vw,1.7rem)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .icon{font-size:1.7rem;line-height:1;margin:0;flex:0 0 auto}
 .value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:600;letter-spacing:-.04em;line-height:1;margin:0;color:#111}
 .label{margin:4px 0 0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#111}
+.meter{margin-top:8px;height:8px;border-radius:999px;background:rgba(8,40,48,.14);overflow:hidden}
+.meter-fill{display:block;height:100%;border-radius:999px;background:rgba(0,150,130,.75)}
+.chart{display:block;width:100%;height:52px;margin:8px 0 0}
 .status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:rgba(16,186,180,.2);border:1px solid rgba(190,255,240,.35)}
 .title{font-size:1.25rem;font-weight:600;margin:0 0 8px}
 .hint{color:#111;margin:0 0 16px;line-height:1.4}
@@ -214,26 +218,86 @@ function metricsMarkup(
   metrics: Extract<MetricsResult, { state: "ready" }>["metrics"],
 ): string {
   const t = WIDGET_COPY;
-  const tiles = [
-    ["tile-burn", "🔥", t.totalBurn, formatMetricValue(metrics.totalCalories, "en", "int")],
-    ["tile-active", "🏃", t.activeBurn, formatMetricValue(metrics.activeCalories, "en", "int")],
-    ["tile-distance", "🚲", t.distance, formatMetricValue(metrics.distanceKm, "en", "km")],
-    ["tile-heart", "❤️", t.heartRate, formatMetricValue(metrics.heartRate, "en", "hr")],
-  ] as const;
+  const active = formatMetricValue(metrics.activeCalories, "en", "int");
+  const total = formatMetricValue(metrics.totalCalories, "en", "int");
+  const fill =
+    metrics.activeCalories != null &&
+    metrics.totalCalories != null &&
+    metrics.totalCalories > 0
+      ? Math.min(100, Math.max(0, (metrics.activeCalories / metrics.totalCalories) * 100))
+      : 0;
 
   return `<main class="grid" id="content" aria-label="${escapeHtml(t.appName)}">
-${tiles
-  .map(
-    ([tone, icon, label, value]) => `<section class="tile ${tone}">
+<section class="tile tile-burn">
 <div class="row">
-<p class="value">${escapeHtml(value)}</p>
-<p class="icon" aria-hidden="true">${icon}</p>
+<p class="value">${escapeHtml(`${active} / ${total}`)}</p>
+<p class="icon" aria-hidden="true">🔥</p>
 </div>
-<p class="label">${escapeHtml(label)}</p>
-</section>`,
-  )
-  .join("\n")}
+<div class="meter" role="img" aria-label="${escapeHtml(`${active} / ${total}`)}"><span class="meter-fill" style="width:${fill.toFixed(1)}%"></span></div>
+<p class="label">${escapeHtml(t.activeOfTotal)}</p>
+</section>
+<section class="tile tile-distance">
+<div class="row">
+<p class="value">${escapeHtml(formatMetricValue(metrics.distanceKm, "en", "km"))}</p>
+<p class="icon" aria-hidden="true">🚲</p>
+</div>
+<p class="label">${escapeHtml(t.distance)}</p>
+</section>
+<section class="tile tile-heart">
+<div class="row">
+<p class="value">${escapeHtml(formatMetricValue(metrics.heartRate, "en", "hr"))}</p>
+<p class="icon" aria-hidden="true">❤️</p>
+</div>
+${heartRateChart(metrics.heartRateWeek)}
+<p class="label">${escapeHtml(t.heartRate)}</p>
+</section>
 </main>`;
+}
+
+function heartRateChart(week: (number | null)[] | undefined): string {
+  const values = week?.length === 7 ? week : emptyHeartRateWeek();
+  const known = values.filter((value): value is number => value != null);
+  if (known.length === 0) {
+    return `<svg class="chart" viewBox="0 0 140 52" preserveAspectRatio="none" aria-hidden="true"></svg>`;
+  }
+
+  const min = Math.min(...known);
+  const max = Math.max(...known);
+  const span = max - min || 1;
+  const width = 140;
+  const height = 52;
+  const padX = 6;
+  const padY = 8;
+  const innerW = width - padX * 2;
+  const innerH = height - padY * 2;
+  const step = values.length > 1 ? innerW / (values.length - 1) : 0;
+
+  const points = values.map((value, index) => {
+    const x = padX + index * step;
+    const y =
+      value == null
+        ? null
+        : padY + innerH - ((value - min) / span) * innerH;
+    return { x, y };
+  });
+
+  const polyline = points
+    .filter((point): point is { x: number; y: number } => point.y != null)
+    .map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+    .join(" ");
+
+  const dots = points
+    .filter((point): point is { x: number; y: number } => point.y != null)
+    .map(
+      (point) =>
+        `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="2.4" fill="#111"/>`,
+    )
+    .join("");
+
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Weekly heart rate">
+<polyline fill="none" stroke="#111" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${polyline}"/>
+${dots}
+</svg>`;
 }
 
 function statusMarkup(

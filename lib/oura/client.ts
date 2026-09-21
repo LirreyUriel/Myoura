@@ -3,12 +3,16 @@ import "server-only";
 import { OURA_API_BASE } from "@/lib/oura/config";
 import { errorFromOuraStatus, OuraApiError } from "@/lib/oura/errors";
 import {
+  averagesByDay,
+  emptyHeartRateWeek,
   pickLatestActivity,
   pickLatestHeartRate,
   toMetrics,
+  weekDayKeys,
   type DailyActivityDocument,
   type HeartRateSample,
   type OuraMetrics,
+  type SleepHeartRateDocument,
 } from "@/lib/oura/metrics";
 import { addDays, ymdInZone } from "@/lib/format";
 
@@ -133,4 +137,38 @@ export async function getTodayMetrics(
   }
 
   return toMetrics(activity, heartRate);
+}
+
+export async function getWeeklyHeartRate(
+  accessToken: string,
+  timeZone = "UTC",
+): Promise<(number | null)[]> {
+  const today = ymdInZone(new Date(), timeZone);
+  const days = weekDayKeys(today);
+
+  try {
+    const payload = await ouraGet<CollectionResponse<SleepHeartRateDocument>>(
+      "/v2/usercollection/sleep",
+      accessToken,
+      { start_date: addDays(today, -6), end_date: addDays(today, 1) },
+    );
+    return averagesByDay(payload.data ?? [], days);
+  } catch (error) {
+    console.error(
+      "oura_weekly_heartrate_failed",
+      error instanceof OuraApiError ? error.status : 0,
+    );
+    return emptyHeartRateWeek();
+  }
+}
+
+export async function getWidgetMetrics(
+  accessToken: string,
+  timeZone = "UTC",
+): Promise<OuraMetrics> {
+  const [metrics, heartRateWeek] = await Promise.all([
+    getTodayMetrics(accessToken, timeZone),
+    getWeeklyHeartRate(accessToken, timeZone),
+  ]);
+  return { ...metrics, heartRateWeek };
 }

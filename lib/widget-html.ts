@@ -178,34 +178,32 @@ export function widgetHtml(model: WidgetModel): string {
           });
 
   return `<!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="ltr" style="background:transparent;background-color:transparent">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="normal">
 <meta name="robots" content="noindex, nofollow">
 <title>${escapeHtml(t.appName)}</title>
 <style>
-html,body{margin:0;height:100%;background:transparent;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-body{box-sizing:border-box;padding:8px;background:transparent}
-.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;height:100%;background:transparent}
-.tile{display:flex;flex-direction:column;justify-content:space-between;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.tile-burn{background:rgba(0,220,180,.45)}
-.tile-active{background:rgba(0,200,210,.42)}
-.tile-distance{background:rgba(40,210,160,.45)}
-.tile-heart{background:rgba(0,170,210,.42)}
-.icon{position:relative;display:inline-block;font-size:1.7rem;line-height:1;margin:0;width:max-content}
-.icon .outline{position:absolute;inset:0;transform:scale(1.24);filter:grayscale(1) brightness(0) invert(1);z-index:0}
-.icon .front{position:relative;z-index:1}
-.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin:8px 0 auto;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
-.label{margin:8px 0 0;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
-.status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:rgba(16,186,180,.32);border:1px solid rgba(190,255,240,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+html,body,#content,.grid{margin:0;height:100%;background:transparent!important;background-color:rgba(0,0,0,0)!important;background-image:none!important}
+html,body{color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{box-sizing:border-box;padding:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px}
+.tile{display:flex;flex-direction:column;justify-content:space-between;border-radius:18px;padding:12px;min-height:0;border:1px solid rgba(190,255,240,.35)}
+.tile-burn{background:rgba(0,220,180,.2)}
+.tile-active{background:rgba(0,200,210,.2)}
+.tile-distance{background:rgba(40,210,160,.2)}
+.tile-heart{background:rgba(0,170,210,.2)}
+.icon{font-size:1.7rem;line-height:1;margin:0}
+.value{direction:ltr;unicode-bidi:isolate;font-size:clamp(1.35rem,6.5vw,2rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin:8px 0 auto;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.label{margin:8px 0 0;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.status{display:flex;flex-direction:column;justify-content:center;height:100%;border-radius:18px;padding:18px;background:rgba(16,186,180,.2);border:1px solid rgba(190,255,240,.35)}
 .title{font-size:1.25rem;font-weight:800;margin:0 0 8px}
 .hint{color:#f2fffb;margin:0 0 16px;line-height:1.4}
-.btn{display:inline-flex;align-items:center;justify-content:center;background:rgba(16,210,168,.7);color:#fff;text-decoration:none;font-weight:800;border-radius:999px;padding:11px 18px}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:rgba(16,210,168,.55);color:#fff;text-decoration:none;font-weight:800;border-radius:999px;padding:11px 18px}
 </style>
 </head>
-<body>
+<body style="background:transparent;background-color:transparent">
 ${body}
 </body>
 </html>`;
@@ -218,7 +216,7 @@ function metricsMarkup(
   const tiles = [
     ["tile-burn", "🔥", t.totalBurn, formatMetricValue(metrics.totalCalories, "en", "int")],
     ["tile-active", "🏃", t.activeBurn, formatMetricValue(metrics.activeCalories, "en", "int")],
-    ["tile-distance", "👣", t.distance, formatMetricValue(metrics.distanceKm, "en", "km")],
+    ["tile-distance", "🚲", t.distance, formatMetricValue(metrics.distanceKm, "en", "km")],
     ["tile-heart", "❤️", t.heartRate, formatMetricValue(metrics.heartRate, "en", "hr")],
   ] as const;
 
@@ -226,7 +224,7 @@ function metricsMarkup(
 ${tiles
   .map(
     ([tone, icon, label, value]) => `<section class="tile ${tone}">
-<p class="icon" aria-hidden="true"><span class="outline">${icon}</span><span class="front">${icon}</span></p>
+<p class="icon" aria-hidden="true">${icon}</p>
 <p class="value">${escapeHtml(value)}</p>
 <p class="label">${escapeHtml(label)}</p>
 </section>`,

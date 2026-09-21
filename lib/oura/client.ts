@@ -1,7 +1,7 @@
 import "server-only";
 
 import { OURA_API_BASE } from "@/lib/oura/config";
-import { errorFromOuraStatus } from "@/lib/oura/errors";
+import { errorFromOuraStatus, OuraApiError } from "@/lib/oura/errors";
 import {
   pickLatestActivity,
   pickLatestHeartRate,
@@ -30,6 +30,7 @@ async function ouraGet<T>(
   });
 
   if (!response.ok) {
+    console.error("oura_api_failed", path, response.status);
     throw errorFromOuraStatus(response.status);
   }
 
@@ -60,39 +61,76 @@ export async function getTodayActivity(
 export async function getLatestHeartRate(
   accessToken: string,
 ): Promise<HeartRateSample | null> {
-  const latest = await ouraGet<CollectionResponse<HeartRateSample>>(
-    "/v2/usercollection/heartrate",
-    accessToken,
-    { latest: "true" },
-  );
-
-  const fromLatest = pickLatestHeartRate(latest.data ?? []);
-  if (fromLatest) {
-    return fromLatest;
+  try {
+    const latest = await ouraGet<CollectionResponse<HeartRateSample>>(
+      "/v2/usercollection/heartrate",
+      accessToken,
+      { latest: "true" },
+    );
+    const fromLatest = pickLatestHeartRate(latest.data ?? []);
+    if (fromLatest) {
+      return fromLatest;
+    }
+  } catch (error) {
+    if (error instanceof OuraApiError && error.code === "reconnect") {
+      throw error;
+    }
   }
 
   const end = new Date();
   const start = new Date(end.getTime() - 12 * 60 * 60 * 1000);
-  const windowed = await ouraGet<CollectionResponse<HeartRateSample>>(
-    "/v2/usercollection/heartrate",
-    accessToken,
-    {
-      start_datetime: start.toISOString(),
-      end_datetime: end.toISOString(),
-    },
-  );
 
-  return pickLatestHeartRate(windowed.data ?? []);
+  try {
+    const windowed = await ouraGet<CollectionResponse<HeartRateSample>>(
+      "/v2/usercollection/heartrate",
+      accessToken,
+      {
+        start_datetime: start.toISOString(),
+        end_datetime: end.toISOString(),
+      },
+    );
+    return pickLatestHeartRate(windowed.data ?? []);
+  } catch (error) {
+    if (error instanceof OuraApiError && error.code === "reconnect") {
+      throw error;
+    }
+    return null;
+  }
 }
 
 export async function getTodayMetrics(
   accessToken: string,
   timeZone = "UTC",
 ): Promise<OuraMetrics> {
-  const [activity, heartRate] = await Promise.all([
-    getTodayActivity(accessToken, timeZone),
-    getLatestHeartRate(accessToken),
-  ]);
+  let activity: DailyActivityDocument | null = null;
+  try {
+    activity = await getTodayActivity(accessToken, timeZone);
+  } catch (error) {
+    if (error instanceof OuraApiError && error.code === "reconnect") {
+      throw error;
+    }
+    console.error(
+      "oura_activity_failed",
+      error instanceof OuraApiError ? error.status : 0,
+    );
+  }
+
+  let heartRate: HeartRateSample | null = null;
+  try {
+    heartRate = await getLatestHeartRate(accessToken);
+  } catch (error) {
+    if (
+      error instanceof OuraApiError &&
+      error.code === "reconnect" &&
+      !activity
+    ) {
+      throw error;
+    }
+    console.error(
+      "oura_heartrate_failed",
+      error instanceof OuraApiError ? error.status : 0,
+    );
+  }
 
   return toMetrics(activity, heartRate);
 }

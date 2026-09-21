@@ -31,6 +31,12 @@ function sessionFromTokenResponse(
   const expiresIn = Number(data.expires_in);
 
   if (!accessToken || !refreshToken) {
+    console.error(
+      "oura_token_shape",
+      Boolean(accessToken),
+      Boolean(refreshToken),
+      data.expires_in ?? "missing",
+    );
     throw new OuraApiError("unavailable", 500);
   }
 
@@ -47,18 +53,15 @@ function sessionFromTokenResponse(
   };
 }
 
-function basicAuthHeader(clientId: string, clientSecret: string): string {
-  const raw = `${clientId}:${clientSecret}`;
-  return `Basic ${Buffer.from(raw, "utf8").toString("base64")}`;
-}
-
 async function postToken(body: URLSearchParams): Promise<TokenResponse> {
   const { clientId, clientSecret } = getOuraConfig();
+  body.set("client_id", clientId);
+  body.set("client_secret", clientSecret);
+
   const response = await fetch(OURA_TOKEN_URL, {
     method: "POST",
     headers: {
       Accept: "application/json",
-      Authorization: basicAuthHeader(clientId, clientSecret),
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body,

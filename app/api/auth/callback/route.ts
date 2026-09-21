@@ -1,11 +1,12 @@
 import { timingSafeEqual } from "crypto";
-import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { COOKIES, oauthStateCookieOptions, sessionCookieOptions } from "@/lib/cookies";
-import { callbackUrlFromRequest, ConfigError } from "@/lib/oura/config";
+import { unseal } from "@/lib/crypto";
 import { exchangeAuthorizationCode } from "@/lib/oura/auth";
+import { ConfigError, oauthRedirectUri } from "@/lib/oura/config";
 import { serializeSessionCookie } from "@/lib/session";
+import { isExpired, type OuraSession } from "@/lib/session-core";
 
 function safeEqual(left: string, right: string): boolean {
   const a = Buffer.from(left);
@@ -24,11 +25,12 @@ export async function GET(request: NextRequest) {
   const error = params.get("error");
   const code = params.get("code");
   const state = params.get("state");
+  const expectedState = request.cookies.get(COOKIES.oauthState)?.value;
+  const existingSession = await unseal<OuraSession>(
+    request.cookies.get(COOKIES.session)?.value ?? "",
+  );
 
-  const jar = await cookies();
-  const expectedState = jar.get(COOKIES.oauthState)?.value;
-
-  const clearState = (response: NextResponse) => {
+  const finish = (response: NextResponse) => {
     response.cookies.set(COOKIES.oauthState, "", {
       ...oauthStateCookieOptions(),
       maxAge: 0,
@@ -37,11 +39,18 @@ export async function GET(request: NextRequest) {
   };
 
   if (error) {
-    return clearState(NextResponse.redirect(new URL("/?error=denied", origin)));
+    return finish(NextResponse.redirect(new URL("/?error=denied", origin)));
+  }
+
+  if (existingSession && !isExpired(existingSession) && !code) {
+    return finish(NextResponse.redirect(new URL("/", origin)));
   }
 
   if (!code || !state || !expectedState || !safeEqual(state, expectedState)) {
-    return clearState(
+    if (existingSession && !isExpired(existingSession)) {
+      return finish(NextResponse.redirect(new URL("/", origin)));
+    }
+    return finish(
       NextResponse.redirect(new URL("/?error=unavailable", origin)),
     );
   }
@@ -49,7 +58,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await exchangeAuthorizationCode(
       code,
-      callbackUrlFromRequest(origin),
+      oauthRedirectUri(request),
     );
     const response = NextResponse.redirect(new URL("/", origin));
     response.cookies.set(
@@ -57,14 +66,17 @@ export async function GET(request: NextRequest) {
       await serializeSessionCookie(session),
       sessionCookieOptions(),
     );
-    return clearState(response);
+    return finish(response);
   } catch (caught) {
+    if (existingSession && !isExpired(existingSession)) {
+      return finish(NextResponse.redirect(new URL("/", origin)));
+    }
     console.error(
       "oura_callback_failed",
       caught instanceof ConfigError ? "config" : "token",
     );
     const codeParam = caught instanceof ConfigError ? "unavailable" : "reconnect";
-    return clearState(
+    return finish(
       NextResponse.redirect(new URL(`/?error=${codeParam}`, origin)),
     );
   }

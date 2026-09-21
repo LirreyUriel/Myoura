@@ -12,24 +12,51 @@ export type OuraConfig = {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
-  appUrl: string;
 };
 
 export function getOuraConfig(): OuraConfig {
   const clientId = readEnv("OURA_CLIENT_ID");
   const clientSecret = readEnv("OURA_CLIENT_SECRET");
   const redirectUri = readEnv("OURA_REDIRECT_URI");
-  const appUrl = readEnv("NEXT_PUBLIC_APP_URL") || readEnv("APP_URL");
 
   if (!clientId || !clientSecret) {
     throw new ConfigError();
   }
 
-  return { clientId, clientSecret, redirectUri, appUrl };
+  return { clientId, clientSecret, redirectUri };
 }
 
-export function callbackUrlFromRequest(origin: string): string {
-  return `${origin.replace(/\/$/, "")}/api/auth/callback`;
+export function oauthRedirectUri(request: {
+  headers: Headers;
+  nextUrl: URL;
+}): string {
+  const configured = readEnv("OURA_REDIRECT_URI");
+  if (configured) {
+    return configured;
+  }
+
+  const appUrl = readEnv("NEXT_PUBLIC_APP_URL") || readEnv("APP_URL");
+  if (appUrl) {
+    return `${appUrl.replace(/\/$/, "")}/api/auth/callback`;
+  }
+
+  const host = (
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    request.nextUrl.host
+  )
+    .split(",")[0]
+    .trim();
+  const proto = process.env.VERCEL
+    ? "https"
+    : (
+        request.headers.get("x-forwarded-proto") ??
+        request.nextUrl.protocol.replace(":", "")
+      )
+        .split(",")[0]
+        .trim();
+
+  return `${proto}://${host}/api/auth/callback`;
 }
 
 export class ConfigError extends Error {

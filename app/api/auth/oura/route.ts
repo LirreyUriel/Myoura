@@ -3,9 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { COOKIES, oauthStateCookieOptions } from "@/lib/cookies";
 import {
-  callbackUrlFromRequest,
-  ConfigError,
   getOuraConfig,
+  oauthRedirectUri,
   OURA_AUTHORIZE_URL,
   OURA_SCOPES,
 } from "@/lib/oura/config";
@@ -15,11 +14,7 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const { clientId } = getOuraConfig();
-    const redirectUri = callbackUrlFromRequest(request.nextUrl.origin);
-    if (!redirectUri) {
-      throw new ConfigError();
-    }
-
+    const redirectUri = oauthRedirectUri(request);
     const state = randomBytes(32).toString("base64url");
     const authorize = new URL(OURA_AUTHORIZE_URL);
     authorize.searchParams.set("response_type", "code");
